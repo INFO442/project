@@ -14,6 +14,49 @@ Table::Table(int arity,int size){
 	this->content=vector<Atom>();
 	this->size=0;
 }
+Table::Table(const char* file){
+	    ifstream infile;
+	    infile.open(file);
+	    vector<Atom > content;
+	    int arity = 0;
+	    int size = 0;
+
+	    string line;
+
+	    bool isfirstline = true; // using it to make sure that we compute arity only with the fist line
+
+	    while(getline(infile,line)){
+	        vector<int> tmp;
+	        stringstream ss;
+	        int localarity =0; // the number of entries in this line
+	        ss<<line;
+	        int entry;
+	        while(ss>> entry){
+	        tmp.push_back(entry);
+	        localarity++;
+	        }
+
+	        if(isfirstline){
+	        	arity = localarity;
+	        	isfirstline = false;
+	        }
+	        else{
+	        	if(localarity!=arity){
+	        		cout<<"Error format of Data: this data has different lines with different arities!!"<<endl;
+	        		break;
+	        	}
+	        }
+	        Atom atom(tmp);
+	        content.push_back(atom);
+	        size++;
+	    }
+		this->content= content;
+		this->arity = arity;
+		this->size=size;
+	    infile.close();
+
+}
+
 void Table::add_line(Atom& line){
 	this->content.push_back(line);
 	this->size++;

@@ -5,11 +5,14 @@
  *      Author: yiranchen
  */
 // STL includes
-#include <iostream>
-#include <vector>
+
 
 #ifndef TABLE_H_
 #define TABLE_H_
+
+#include <iostream>
+#include <vector>
+#include "atom.h"
 using namespace std;
 class Table{
 
@@ -18,15 +21,19 @@ public:
 	//constructor
 	Table(int arity);
 	Table(int arity,int size);
-	// add and remove lines
-	void add_line(vector<vector<int>> line);
-	vector<vector<int>> remove_end_line();
-	vector<vector<int>> remove_line(int index);
 
+	// add and remove lines
+	void add_line(Atom& line);
+	Atom remove_end_line();
+//	Atom remove_line(int index);
+	//get element
+	Atom get(int index) const;
+	//print_head
+	void print_head() const;
 private:
-	const int arity;
+	int arity;
 	int size;
-	vector<vector<int>> content;
+	vector<Atom> content;
 
 
 };

@@ -10,7 +10,7 @@
 using namespace std;
 
 Atom::Atom(vector<int>& line): line(line),arity(line.size())
-{ }
+{}
 vector<int> Atom::get_all() const{
 	return this->line;
 }

@@ -25,7 +25,7 @@ public:
 	void print_line() const;
 private:
 	vector<int> line;
-	const int arity;
+	int arity;
 };
 
 

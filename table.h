@@ -24,7 +24,7 @@ public:
 	vector<vector<int>> remove_line(int index);
 
 private:
-	int arity;
+	const int arity;
 	int size;
 	vector<vector<int>> content;
 

@@ -21,7 +21,7 @@ public:
 	//constructor
 	Table(int arity);
 	Table(int arity,int size);
-
+	Table(const char* file);
 	// add and remove lines
 	void add_line(Atom& line);
 	Atom remove_end_line();

@@ -31,4 +31,7 @@ void Atom::print_line() const{
 		}
 		printf("\n");
 }
+bool Atom::compare(const Atom& a, const Atom &b){
+	return a.get(0)<b.get(0);
 
+}

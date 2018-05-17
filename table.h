@@ -24,12 +24,16 @@ public:
 	Table(const char* file);
 	// add and remove lines
 	void add_line(Atom& line);
-	Atom remove_end_line();
+	Atom* remove_end_line();
 //	Atom remove_line(int index);
 	//get element
-	Atom get(int index) const;
+	Atom* get(int index) const;
 	//print_head
-	void print_head() const;
+	void print_head(int num_line) const;
+	void sort_table();
+	//get arity
+	int get_arity() const;
+	int get_size() const;
 private:
 	int arity;
 	int size;

@@ -31,7 +31,25 @@ void Atom::print_line() const{
 		}
 		printf("\n");
 }
-bool Atom::compare(const Atom& a, const Atom &b){
-	return a.get(0)<b.get(0);
+int Atom::compare(const Atom& a, const Atom &b,const int *dict){
+	int arity=a.get_arity();
+	//Test if arities match with len(dict)
+	if(arity!=b.get_arity()){
+		printf("error:arities don't match:\n");
+		return -2;
+	}
+	int index=0;
+	//order
+	for(int i=0;i<arity;i++){
+		index=dict[i];
+		if(a.get(index)<b.get(index)){
+			return -1;
+		}
+		if(a.get(index)>b.get(index)){
+			return 1;
+		}
+	}
+// if a==b return false
+	return 0;
 
 }

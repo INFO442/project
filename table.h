@@ -22,6 +22,9 @@ public:
 	Table(int arity);
 	Table(int arity,int size);
 	Table(const char* file);
+
+	//destructor
+	~Table();
 	// add and remove lines
 	void add_line(Atom& line);
 	Atom* remove_end_line();
@@ -30,13 +33,44 @@ public:
 	Atom* get(int index) const;
 	//print_head
 	void print_head(int num_line) const;
-	void sort_table();
+	//sort table
+//	void sort_table();
 	//get arity
+
+	//sort
+	struct sortstruct
+		{
+			// sortstruct needs to know its containing object
+			Table* t;
+			sortstruct(Table* p) : t(p) {};
+
+			// this is our sort function, which makes use compare of instance
+			bool operator() ( Atom a, Atom b )
+			{
+				if(t->compare(a, b)>=0){
+					return false;
+				}
+				return true;
+			}
+		};
+
 	int get_arity() const;
 	int get_size() const;
+	int compare(const Atom& a,const Atom& b) const;
+	void print_permut()const;
+	void set_permut(int *d,int len);
+	void sort_permut()
+		{	// create a sortstruct and pass it to std::sort
+			sortstruct s(this);
+			::sort (this->content.begin(), this->content.end (),s);
+		}
+
+
 private:
+//	bool compare(const Atom& a,const Atom& b);
 	int arity;
 	int size;
+	int *dict;
 	vector<Atom> content;
 
 

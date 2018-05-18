@@ -23,7 +23,7 @@ public:
 	int get_arity() const;
 	//print all content
 	void print_line() const;
-	static bool compare(const Atom& a, const Atom& b);
+	static int compare(const Atom& a, const Atom& b,const int *dict);
 private:
 	vector<int> line;
 	int arity;

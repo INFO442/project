@@ -33,7 +33,7 @@ void Atom::print_line() const{
 }
 int Atom::compare(const Atom& a, const Atom &b,const int *dict){
 	int arity=a.get_arity();
-	//Test if arities match with len(dict)
+	//Test if arities match with each other
 	if(arity!=b.get_arity()){
 		printf("error:arities don't match:\n");
 		return -2;

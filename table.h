@@ -25,17 +25,15 @@ public:
 
 	//destructor
 	~Table();
+
+
 	// add and remove lines
 	void add_line(Atom& line);
 	Atom* remove_end_line();
-//	Atom remove_line(int index);
-	//get element
-	Atom* get(int index) const;
-	//print_head
-	void print_head(int num_line) const;
-	//sort table
-//	void sort_table();
-	//get arity
+
+
+
+
 
 	//sort
 	struct sortstruct
@@ -54,16 +52,38 @@ public:
 			}
 		};
 
+	//sorting function using this->dict as permutation sorting lexicograph
+		void sort_permut()
+			{	// create a sortstruct and pass it to std::sort
+				sortstruct s(this);
+				::sort (this->content.begin(), this->content.end (),s);
+			}
+
+//get information of table
+	void print_permut()const;
 	int get_arity() const;
 	int get_size() const;
+//get element
+	Atom* get(int index) const;
+//print_head
+	void print_head(int num_line) const;
+
+
+	//using permutation as lexicograph to compare
+	//-2:error
+	//-1 a<b
+	//+1 a>b
+	//0 a==b
+
+	//using  this->dict as defaut lexicograph
 	int compare(const Atom& a,const Atom& b) const;
-	void print_permut()const;
+
+	//using given permut as lexicograph
+	int compare(const Atom& a,const Atom& b,int *permute) const;
+	//seting dict (default lexicograph as well as sorting lexicograph)
 	void set_permut(int *d,int len);
-	void sort_permut()
-		{	// create a sortstruct and pass it to std::sort
-			sortstruct s(this);
-			::sort (this->content.begin(), this->content.end (),s);
-		}
+
+
 
 
 private:

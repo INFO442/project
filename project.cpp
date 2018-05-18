@@ -11,7 +11,7 @@
 #include "table.h"
 using namespace std;
 void testTable(){
-	int n1[]={1,2,3};
+		int n1[]={1,2,3};
 		int n2[]={2,3,1};
 		int n3[]={1,3,2};
 		int n4[]={3,1,2};
@@ -34,7 +34,11 @@ void testTable(){
 		int d[]={1,0,2};
 		t.set_permut(d,3);
 
-		cout<<t.compare(a3, a4)<<endl;
+		int d_[]={1,0,2};
+
+		cout<<t.compare(a3,a4,d_)<<endl;
+
+
 		t.sort_permut();
 		t.print_head(4);
 		t.print_permut();

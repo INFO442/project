@@ -151,7 +151,9 @@ int Table::compare(const Atom&a, const Atom &b) const {
 
 	return Atom::compare(a, b, this->dict);
 }
-
+int Table::compare(const Atom& a,const Atom& b,int *permute) const{
+	return Atom::compare(a, b, permute);
+}
 //print permut
 void Table::print_permut() const {
 	printf("the permutation of this table is:\n");
@@ -160,7 +162,8 @@ void Table::print_permut() const {
 	}
 	printf("\n");
 }
-//set permut
+
+//set permutation
 void Table::set_permut(int *d,int len) {
 	if (len != this->arity) {
 		printf("permutation cannot match with arity\n");

@@ -9,7 +9,7 @@
 
 #ifndef TABLE_H_
 #define TABLE_H_
-
+#include <algorithm>
 #include <iostream>
 #include <vector>
 #include "atom.h"

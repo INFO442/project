@@ -4,7 +4,7 @@
  *  Created on: 18 mai 2018
  *      Author: shancheng
  */
-
+#include <stdio.h>
 #include <iostream>
 #include <vector>
 #include <algorithm>

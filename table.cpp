@@ -6,6 +6,7 @@
 #include <sstream>
 #include <string>
 #include "atom.h"
+#include <stdio.h>
 using namespace std;
 //constructor
 Table::Table(const char* file) {

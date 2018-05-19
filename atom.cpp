@@ -4,6 +4,7 @@
  *  Created on: May 17, 2018
  *      Author: yiranchen
  */
+#include <stdio.h>
 #include <iostream>
 #include <vector>
 #include "atom.h"

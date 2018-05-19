@@ -6,13 +6,11 @@
 // Description : Hello World in C++, Ansi-style
 //============================================================================
 #include <iostream>
-#include<unordered_map>
 #include <vector>
 #include "atom.h"
 #include "table.h"
 #include "join.h"
 using namespace std;
-unordered_map <int,int> hashfunction(Table &t,int name,int num_p);
 void testTable() {
 	int n1[] = { 1, 2, 3 };
 	int n2[] = { 2, 3, 1 };
@@ -51,7 +49,6 @@ void testTable() {
 	//	t.print_head(50);
 }
 void testTable2() {
-
 	int n1[] = { 1, 2, 3 };
 	int n2[] = { 2, 3, 1 };
 	int n3[] = { 1, 3, 2 };
@@ -87,45 +84,7 @@ void testTable2() {
 	t.print_head(4);
 
 }
-void testTable3() {
-	int n1[] = { 4, 2, 3 };
-		int n2[] = { 2, 3, 1 };
-		int n3[] = { 1, 3, 2 };
-		int n4[] = { 3, 1, 2 };
-		vector<int> v1(n1, n1 + 3);
-		vector<int> v2(n2, n2 + 3);
-		vector<int> v3(n3, n3 + 3);
-		vector<int> v4(n4, n4 + 3);
-		vector<vector<int> > T(0);
-		T.push_back(v1);
-		T.push_back(v2);
-		T.push_back(v3);
-		T.push_back(v4);
-		Table t = Table(T);
-		unordered_map<int, int> m=hashfunction(t, 0, 3);
 
-			cout<<"size: "<<m.size()<<endl;
-		for(unordered_map <int,int>::iterator itr=m.begin(); itr!=m.end();itr++){
-			cout<<"key: "<<itr->first<<" value "<<itr->second<<endl;
-		}
-
-		t.print_head(4);
-}
-
-
-
-unordered_map <int,int> hashfunction(Table &t,int name,int num_p){
-	unordered_map<int, int> m;
-	int id_p=0;
-	for(vector<Atom>::iterator itr=t.begin(); itr!=t.end();itr++){
-		int key=itr->get(name);
-		if(m.find(key)==m.end()){
-			m[key]=id_p;
-			id_p=(id_p+1)%num_p;
-		}
-	}
-	return m;
-}
 void testJoint(){
 	//testTable();
 		Table t1 = Table(2);
@@ -178,5 +137,5 @@ void testJoint(){
 }
 
 int main(int argc, char **argv) {
-testTable3();
+	testTable2();
 }

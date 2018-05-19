@@ -78,7 +78,7 @@ Atom Join::merge(Atom a1, Atom a2,vector<vector<int> > common_x){
 		if(find(common_x[1].begin(),common_x[1].end(),i)==common_x[1].end())
 			line.push_back(a2line[i]);
    }
-	assert(line.size()==arity);
+//	assert(line.size()==arity);
 	Atom atom(line);
 	return atom;
 }
@@ -92,7 +92,7 @@ int* Join::generate_dict(vector<int> x, int* dict_x, int arity){
 	for(int i=0;i<arity;i++){
 		if(find(x.begin(),x.end(),i)==x.end()) dict_vect.push_back(i);
 	}
-	assert(arity==dict_vect.size());
+//	assert(arity==dict_vect.size());
 	for(int i=0;i<arity;i++){
 		dict[i]= dict_vect[i];
 	}

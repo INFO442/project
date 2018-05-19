@@ -82,6 +82,26 @@ Table::Table(int arity, int size) {
 		dict[i] = i;
 	}
 }
+Table::Table(vector<vector<int> >& v) {
+	this->arity = v[0].size();
+	this->content = vector<Atom>();
+	this->size = v.size();
+
+
+	//constructing dictionnary,default value is set to {1,2,3,4,..,r}
+	this->dict = new int[this->arity];
+	for (int i = 0; i < (this->arity); i++) {
+		dict[i] = i;
+	}
+
+	for (vector<vector<int> >::const_iterator itr = v.begin(); itr != v.end();
+			++itr) {
+		vector<int> v=*itr;
+		Atom  a=Atom (v);
+		content.push_back(a);
+	}
+}
+
 //destructor
 Table::~Table() {
 	delete this->dict;
@@ -135,8 +155,8 @@ int Table::get_size() const {
 	return this->size;
 }
 
-const vector<Atom>& Table::get_content() const{
-	return this-> content;
+const vector<Atom>& Table::get_content() const {
+	return this->content;
 }
 Atom* Table::get(int index) const {
 	if (index >= this->size) {
@@ -165,13 +185,13 @@ void Table::print_permut() const {
 	printf("\n");
 }
 //set permut
-void Table::set_permut(int *d,int len) {
+void Table::set_permut(int *d, int len) {
 	if (len != this->arity) {
 		printf("permutation cannot match with arity\n");
 		return;
 	}
-	for(int i=0;i<this->arity;i++){
-		this->dict[i]=d[i];
+	for (int i = 0; i < this->arity; i++) {
+		this->dict[i] = d[i];
 	}
 }
 

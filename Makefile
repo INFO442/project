@@ -1,3 +1,5 @@
+#error This file requires compiler and library support for the ISO C++ 2011 standard. This support is currently experimental, and must be enabled with the -std=c++11 or -std=gnu++11 compiler options.
+
 CC = mpic++
 
 atom.o: atom.cpp atom.h

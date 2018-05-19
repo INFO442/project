@@ -85,7 +85,7 @@ Table::Table(int arity, int size) {
 //destructor
 Table::~Table() {
 	delete this->dict;
-	printf("!!!table destructed!\n");
+	//cout<<"!!!table destructed!\n"<<endl;
 }
 
 //add line
@@ -134,6 +134,10 @@ int Table::get_arity() const {
 int Table::get_size() const {
 	return this->size;
 }
+
+const vector<Atom>& Table::get_content() const{
+	return this-> content;
+}
 Atom* Table::get(int index) const {
 	if (index >= this->size) {
 		printf("error:size==0");
@@ -151,9 +155,7 @@ int Table::compare(const Atom&a, const Atom &b) const {
 
 	return Atom::compare(a, b, this->dict);
 }
-int Table::compare(const Atom& a,const Atom& b,int *permute) const{
-	return Atom::compare(a, b, permute);
-}
+
 //print permut
 void Table::print_permut() const {
 	printf("the permutation of this table is:\n");
@@ -162,8 +164,7 @@ void Table::print_permut() const {
 	}
 	printf("\n");
 }
-
-//set permutation
+//set permut
 void Table::set_permut(int *d,int len) {
 	if (len != this->arity) {
 		printf("permutation cannot match with arity\n");

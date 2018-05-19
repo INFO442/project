@@ -168,6 +168,7 @@ int main(int argc, char *argv[]) {
 //	cout<<"hello"<<endl;
 	int id, num_p, flag, tag, num_table;
 	Table t=Table(3);
+	Table t2=Table(3);
 	MPI_Status status;
 	MPI_Request reqs;
 	// Initialize MPI.
@@ -191,22 +192,54 @@ int main(int argc, char *argv[]) {
 		int s3[] = { 3, 2, 1 };
 		int s4[] = { 2, 1, 3 };
 		int s5[] = { 5, 1, 3 };
+
+		int s6[] = { 1, 2, 3 };
+		int s7[] = { 2, 3, 1 };
+		int s8[] = { 3, 2, 1 };
+		int s9[] = { 2, 1, 3 };
+		int s10[] = { 5, 1, 3 };
+
 		vector<int> v1(s1, s1 + 3);
 		vector<int> v2(s2, s2 + 3);
 		vector<int> v3(s3, s3 + 3);
 		vector<int> v4(s4, s4 + 3);
 		vector<int> v5(s5, s5 + 3);
+
+		vector<int> v6(s6, s6 + 3);
+			vector<int> v7(s7, s7 + 3);
+				vector<int> v8(s8, s8 + 3);
+				vector<int> v9(s9, s9 + 3);
+				vector<int> v10(s10, s10 + 3);
+
 		Atom a1=Atom(v1);
 		Atom a2=Atom(v2);
 		Atom a3=Atom(v3);
 		Atom a4=Atom(v4);
 		Atom a5=Atom(v5);
 
+
+		Atom a6=Atom(v6);
+				Atom a7=Atom(v7);
+				Atom a8=Atom(v8);
+				Atom a9=Atom(v9);
+				Atom a10=Atom(v10);
+
 		t.add_line(a1);
 		t.add_line(a2);
 		t.add_line(a3);
 		t.add_line(a4);
 		t.add_line(a5);
+
+
+		t2.add_line(a6);
+		t2.add_line(a7);
+		t2.add_line(a8);
+		t2.add_line(a9);
+		t2.add_line(a10);
+
+
+
+
 		arity = t.get_arity();
 		name = 0;
 		num_table = 1;
@@ -222,15 +255,27 @@ int main(int argc, char *argv[]) {
 	flag = 0;
 	tag = 0;
 	if (id == ROOT) {
-		send(t, num_p, tag, flag, name, arity);
+		send(t, num_p, 0, flag, name, arity);
+		send(t2, num_p, 1, flag, name, arity);
 	} else {
-		receive(t, tag, flag, arity);
+		receive(t, 0, flag, arity);
+		receive(t2, 1, flag, arity);
 	}
 
 	MPI_Barrier (MPI_COMM_WORLD);
 	// joint raw data in each processors
-	Table t_result=t;
-
+	vector<vector<int> > common_x(0);
+	vector<int> v1(1,2);
+	vector<int> v2(1,0);
+	common_x.push_back(v1);
+	common_x.push_back(v2);
+	int dict_x[]={0};
+	MPI_Barrier(MPI_COMM_WORLD);
+	Table t_result=Join::join(t, t2, common_x, dict_x);
+	MPI_Barrier(MPI_COMM_WORLD);
+	if(id==ROOT){
+		t_result.print_head(t_result.get_size());
+	}
 	//  resending results of processors to root
 	MPI_Barrier(MPI_COMM_WORLD);
 

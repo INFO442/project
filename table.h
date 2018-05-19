@@ -22,6 +22,7 @@ public:
 	Table(int arity);
 	Table(int arity,int size);
 	Table(const char* file);
+	Table(vector<vector<int> >& v);
 
 	//destructor
 	~Table();
@@ -64,7 +65,19 @@ public:
 			sortstruct s(this);
 			::sort (this->content.begin(), this->content.end (),s);
 		}
+	//line iterator of Table
 	const vector<Atom>& get_content() const;
+
+	vector<Atom>::iterator begin(){
+		return this->content.begin();
+	}
+	vector<Atom>::iterator end(){
+		return this->content.end();
+	}
+	void erase(vector<Atom>::iterator itr){
+		this->content.erase(itr);
+	}
+
 
 private:
 //	bool compare(const Atom& a,const Atom& b);

@@ -33,7 +33,7 @@ void Atom::print_line() const{
 }
 int Atom::compare(const Atom& a, const Atom &b,const int *dict){
 	int arity=a.get_arity();
-	//Test if arities match with each other
+	//Test if arities match with len(dict)
 	if(arity!=b.get_arity()){
 		printf("error:arities don't match:\n");
 		return -2;
@@ -52,4 +52,34 @@ int Atom::compare(const Atom& a, const Atom &b,const int *dict){
 // if a==b return false
 	return 0;
 
+}
+
+int Atom::compare(const Atom& a, const Atom& b,const vector<vector<int> > common_x, int *dict_x){
+	int n_common = common_x[0].size();
+	for(int i=0;i<n_common;i++){
+		int index = dict_x[i];
+
+		if(a.get(common_x[0][index])<b.get(common_x[1][index])){
+			return -1;
+		}
+		if(a.get(common_x[0][index])>b.get(common_x[1][index])){
+					return 1;
+		}
+	}
+
+	return 0;
+}
+
+int Atom::compare_r(const Atom& a, const Atom& b, const vector<int> restriction,int *dict_x){
+	int n_common = restriction.size();
+	for(int i=0;i<n_common;i++){
+		int index = dict_x[i];
+		if(a.get(restriction[index])<b.get(restriction[index])){
+			return -1;
+		}
+		if(a.get(restriction[index])>b.get(restriction[index])){
+			return 1;
+		}
+	}
+	return 0;
 }

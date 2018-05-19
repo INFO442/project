@@ -24,6 +24,8 @@ public:
 	//print all content
 	void print_line() const;
 	static int compare(const Atom& a, const Atom& b,const int *dict);
+	static int compare(const Atom& a, const Atom& b,const vector<vector<int> > common_x, int *dict_x);
+	static int compare_r(const Atom& a, const Atom& b, const vector<int> restriction,int *dict_x);
 private:
 	vector<int> line;
 	int arity;

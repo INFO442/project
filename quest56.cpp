@@ -34,9 +34,11 @@ void distri_print(Table& t, string& name_Table, int id, int arity, int num_p);
 void print_bug_result(int id, Table& t);
 void print_bug(int id, Table& t, Table& t2);
 
-void print_bug_result(int id, Table& t) {
+void print_bug_result(int id, Table& t, bool info) {
 	cout << "ID:" << id << " T_result:" << endl;
-//	t.print_head(t.get_size());
+	if (info) {
+		t.print_head(t.get_size());
+	}
 	cout << "size: " << t.get_size() << " arity: " << t.get_arity() << endl;
 }
 void print_bug(int id, Table& t, Table& t2) {
@@ -254,7 +256,6 @@ void receive_inRoot_single(Table& t, int src) {
 	int* atom = new int[arity];
 	vector<int> atomv(arity);
 
-
 	for (int i = 0; i < arity; i++) {
 		atom[i] = 0;
 	}
@@ -327,9 +328,6 @@ int main(int argc, char *argv[]) {
 	cout << "distributed_T1 size:" << t.get_size() << " T2 size:"
 			<< t2.get_size() << endl;
 
-	if (id == ROOT) {
-//		print_bug(id, t, t2);
-	}
 
 //	 joint raw data in each processors
 
@@ -348,31 +346,21 @@ int main(int argc, char *argv[]) {
 //	  resending results of processors to root
 
 //
-	for(int i=1;i<num_p;i++){
+	for (int i = 1; i < num_p; i++) {
 		MPI_Barrier(MPI_COMM_WORLD);
-			if (id != ROOT) {
-				if (id == i)
-					send_toRoot(t_result, ROOT, id);
-			} else {
-				receive_inRoot_single(t_result, i);
-			}
-	}
-
-
-	MPI_Barrier(MPI_COMM_WORLD);
-	if (id == ROOT) {
-		print_bug_result(ROOT, t_result);
+		if (id != ROOT) {
+			if (id == i)
+				send_toRoot(t_result, ROOT, id);
+		} else {
+			receive_inRoot_single(t_result, i);
+		}
 	}
 
 // Print off distribution result
-
-//distri_print(t," t1 ",id,arity,num_p);
-//MPI_Barrier (MPI_COMM_WORLD);
-//distri_print(t2," t2 ",id,arity,num_p);
-//MPI_Barrier (MPI_COMM_WORLD);
-
-// Print off joint result
-//distri_print(t_result," result ",id,arity,num_p);
+	MPI_Barrier(MPI_COMM_WORLD);
+	if (id == ROOT) {
+		print_bug_result(ROOT, t_result,true);
+	}
 
 // Terminate MPI.
 

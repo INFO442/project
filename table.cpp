@@ -102,10 +102,17 @@ Table::Table(vector<vector<int> >& v) {
 		content.push_back(a);
 	}
 }
-
+Table::Table(vector<Atom>& v):content(v){
+	this->arity=v[0].get_arity();
+	this->size=v.size();
+	this->dict = new int[this->arity];
+		for (int i = 0; i < (this->arity); i++) {
+			dict[i] = i;
+		}
+}
 //destructor
 Table::~Table() {
-	delete this->dict;
+//	delete this->dict;
 	//cout<<"!!!table destructed!\n"<<endl;
 }
 

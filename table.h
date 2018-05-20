@@ -23,7 +23,7 @@ public:
 	Table(int arity,int size);
 	Table(const char* file);
 	Table(vector<vector<int> >& v);
-
+	Table(vector<Atom >& v);
 	//destructor
 	~Table();
 	// add and remove lines

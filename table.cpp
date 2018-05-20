@@ -19,7 +19,7 @@ Table::Table(const char* file) {
 	string line;
 
 	bool isfirstline = true; // using it to make sure that we compute arity only with the fist line
-	int n = 100;
+	int n = 100000;
 	while (getline(infile, line) && (n--) > 0) {
 		vector<int> tmp;
 		stringstream ss;
@@ -49,7 +49,6 @@ Table::Table(const char* file) {
 	this->content = content;
 	this->arity = arity;
 	this->size = size;
-	cout << "size" << this->size << endl;
 	infile.close();
 
 	//constructing dictionnary,default value is set to {1,2,3,4,..,r}

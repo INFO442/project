@@ -75,7 +75,10 @@ public:
 		return this->content.end();
 	}
 	void erase(vector<Atom>::iterator itr){
+		if(itr!=this->content.end()){
 		this->content.erase(itr);
+		this->size--;
+		}
 	}
 
 

@@ -65,16 +65,17 @@ void distribute(Table& t, map<int, int> m, int id, int name) {
 
 	}
 }
-void distribute_by_copy(Table& t,Table& t_,map<int, int> m, int id, int name){
-	for (vector<Atom>::iterator itr = t_.begin(); itr != t_.end();itr++) {
-			int key = itr->get(name);
-			//copy into t for t_ if m(key)==id
-			if(m[key]==id){
-				Atom a=*itr;
-				t.add_line(a);
-			}
-
+void distribute_by_copy(Table& t, Table& t_, map<int, int> m, int id,
+		int name) {
+	for (vector<Atom>::iterator itr = t_.begin(); itr != t_.end(); itr++) {
+		int key = itr->get(name);
+		//copy into t for t_ if m(key)==id
+		if (m[key] == id) {
+			Atom a = *itr;
+			t.add_line(a);
 		}
+
+	}
 }
 
 void distri_print(Table& t, string name_Table, int id, int arity, int num_p) {
@@ -194,29 +195,35 @@ void receive(Table& t, int tag, int& flag, int arity) {
 
 void send_toRoot(Table& t, int root, int src) {
 	int arity = t.get_arity();
-	MPI_Request reqs;
 	MPI_Status status;
 	int destination = root;
 	//send data
+	cout << "sending start:" << src << endl;
+	int *atom = new int[arity];
 	for (vector<Atom>::iterator itr = t.begin(); itr != t.end(); itr++) {
-//		cout<<"here"<<endl;
-//		cout<<"here"<<endl;
-//		cout<<"here"<<endl;
-		Atom a = *itr;
-		vector<int> atom = a.get_all();
 
-		MPI_Isend(&atom[0], arity, MPI_INT, destination, TAG_RESULT,
-				MPI_COMM_WORLD, &reqs);
-		MPI_Wait(&reqs, &status);
+		Atom a = *itr;
+		vector<int> atomv = a.get_all();
+
+		for (int i = 0; i < atomv.size(); i++) {
+			atom[i] = atomv[i];
+		}
+
+		MPI_Send(atom, arity, MPI_INT, destination, TAG_RESULT + src,
+				MPI_COMM_WORLD);
+
 	}
 
 	//return signal that sending finished
+	vector<int> atomv(arity, -1);
+	for (int i = 0; i < arity; i++) {
+		atom[i] = -1;
 
-	vector<int> atom(arity, -1);
-	MPI_Isend(&atom[0], arity, MPI_INT, destination, TAG_RESULT, MPI_COMM_WORLD,
-			&reqs);
-	MPI_Wait(&reqs, &status);
-
+	}
+	MPI_Send(atom, arity, MPI_INT, destination, TAG_RESULT + src,
+			MPI_COMM_WORLD);
+	cout << "sending end:" << src << endl;
+	delete atom;
 }
 void receive_inRoot(Table& t, int num_p) {
 	MPI_Request reqs;
@@ -224,19 +231,56 @@ void receive_inRoot(Table& t, int num_p) {
 	int arity = t.get_arity();
 	for (int i = 1; i < num_p; i++) {
 		vector<int> atom(arity, 0);
-
+		cout << "reception start:" << i << endl;
+		int step = 0;
 		while (atom[0] >= 0) {
 
-			MPI_Irecv(&atom[0], arity, MPI_INT, i, TAG_RESULT, MPI_COMM_WORLD,
-					&reqs);
-			MPI_Wait(&reqs, &status);
+			MPI_Recv(&atom[0], arity, MPI_INT, i, TAG_RESULT + i,
+					MPI_COMM_WORLD, &status);
+//			MPI_Wait(&reqs, &status);
 			if (atom[0] >= 0) {
 				Atom a = Atom(atom);
 				t.add_line(a);
 			}
 		}
-		cout << "received:" << i << endl;
+		cout << "reception end :" << i << endl;
 	}
+}
+
+void receive_inRoot_single(Table& t, int src) {
+
+	MPI_Status status;
+	int arity = t.get_arity();
+	int* atom = new int[arity];
+	vector<int> atomv(arity);
+
+
+	for (int i = 0; i < arity; i++) {
+		atom[i] = 0;
+	}
+//		vector<int> atomv(arity, 0);
+	cout << "reception start:" << src << endl;
+
+	while (atom[0] >= 0) {
+
+		MPI_Recv(atom, arity, MPI_INT, src, TAG_RESULT + src, MPI_COMM_WORLD,
+				&status);
+
+		if (atom[0] >= 0) {
+
+			for (int i = 0; i < arity; i++) {
+				atomv[i] = atom[i];
+			}
+
+			Atom a = Atom(atomv);
+			t.add_line(a);
+		}
+
+	}
+
+	cout << "reception end :" << src << endl;
+	delete atom;
+
 }
 
 int main(int argc, char *argv[]) {
@@ -251,23 +295,22 @@ int main(int argc, char *argv[]) {
 	MPI_Comm_size(MPI_COMM_WORLD, &num_p);
 	// Get the individual process ID.
 	MPI_Comm_rank(MPI_COMM_WORLD, &id);
-	double start,end;
-	int arity,arity2;
+	double start, end;
+	int arity, arity2;
 
 //The master/root processor load data
-	if(id==ROOT){
-		start=MPI_Wtime();
+	if (id == ROOT) {
+		start = MPI_Wtime();
 	}
 	const char* file = "facebook.dat.txt";
 	const char* file2 = "dblp.dat.txt";
 	Table t_ = Table(file);
 	Table t2_ = Table(file2);
 	arity = t_.get_arity();
-	arity2=t2_.get_arity();
+	arity2 = t2_.get_arity();
 	num_table = 2;
-	Table t=Table(arity);
-	Table t2=Table(arity2);
-
+	Table t = Table(arity);
+	Table t2 = Table(arity2);
 
 	//Root distribute data to every slave //Slave receive data
 	flag = 0;
@@ -278,10 +321,11 @@ int main(int argc, char *argv[]) {
 
 //	smarter way for distribution
 
-	distribute_by_copy(t,t_,m,id,name1);
-	distribute_by_copy(t2,t2_,m,id,name2);
+	distribute_by_copy(t, t_, m, id, name1);
+	distribute_by_copy(t2, t2_, m, id, name2);
 	MPI_Barrier (MPI_COMM_WORLD);
-	cout<<"distributed_T1 size:"<<t.get_size()<<" T2 size:"<<t2.get_size()<<endl;
+	cout << "distributed_T1 size:" << t.get_size() << " T2 size:"
+			<< t2.get_size() << endl;
 
 	if (id == ROOT) {
 //		print_bug(id, t, t2);
@@ -297,18 +341,23 @@ int main(int argc, char *argv[]) {
 	int dict_x[] = { 0 };
 	Table t_result = Join::join(t, t2, common_x, dict_x);
 	cout << "id:" << id << " result_arity: " << t_result.get_arity() << endl;
+	cout << "id:" << id << " result_size: " << t_result.get_size() << endl;
 
-	MPI_Barrier (MPI_COMM_WORLD);
+	MPI_Barrier(MPI_COMM_WORLD);
 
 //	  resending results of processors to root
 
 //
-	if (id != ROOT) {
-		send_toRoot(t_result, ROOT, id);
-	} else {
-		receive_inRoot(t_result, num_p);
+	for(int i=1;i<num_p;i++){
+		MPI_Barrier(MPI_COMM_WORLD);
+			if (id != ROOT) {
+				if (id == i)
+					send_toRoot(t_result, ROOT, id);
+			} else {
+				receive_inRoot_single(t_result, i);
+			}
 	}
-//
+
 
 	MPI_Barrier(MPI_COMM_WORLD);
 	if (id == ROOT) {
@@ -327,9 +376,9 @@ int main(int argc, char *argv[]) {
 
 // Terminate MPI.
 
-	if(id==ROOT){
-		end=MPI_Wtime();
-		cout<<"Processing time:"<<(end-start)<<endl;
+	if (id == ROOT) {
+		end = MPI_Wtime();
+		cout << "Processing time:" << (end - start) << endl;
 	}
 
 	MPI_Finalize();

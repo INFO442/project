@@ -19,7 +19,7 @@ Table::Table(const char* file) {
 	string line;
 
 	bool isfirstline = true; // using it to make sure that we compute arity only with the fist line
-	int n = 10000000;
+	int n = 1000;
 	while (getline(infile, line) && (n--) > 0) {
 		vector<int> tmp;
 		stringstream ss;
@@ -112,7 +112,7 @@ Table::Table(vector<Atom>& v):content(v){
 //destructor
 Table::~Table() {
 //	delete this->dict;
-	//cout<<"!!!table destructed!\n"<<endl;
+//	cout<<"!!!table destructed!\n"<<endl;
 }
 
 //add line

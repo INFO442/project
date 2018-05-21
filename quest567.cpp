@@ -813,7 +813,7 @@ void testQ56(int argc, char *argv[]){
 
 int main(int argc, char *argv[]) {
 
-	testQ56(argc ,argv);
+	testQ7(argc ,argv);
 	return 0;
 
 }

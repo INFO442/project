@@ -811,9 +811,107 @@ void testQ56(int argc, char *argv[]){
 
 }
 
+void testQ5(int argc, char *argv[]){
+    //setting up for MPI environment
+    int id, num_p, num_table;
+    MPI_Status status;
+    MPI_Request reqs;
+    // Initialize MPI.
+    MPI_Init(&argc, &argv);
+    // Get the number of processes.
+    MPI_Comm_size(MPI_COMM_WORLD, &num_p);
+    // Get the individual process ID.
+    MPI_Comm_rank(MPI_COMM_WORLD, &id);
+    
+    //setting up parameters for joints
+    
+    vector<Table*> result_Table(0);
+    vector<int> name(0);
+    vector<vector<int> > common_x(0);
+    
+    //starting run time
+    double start, end;
+    if (id == ROOT) {
+        start = MPI_Wtime();
+    }
+    
+    //loading raw Data
+    const char* file_list[] = { "facebook.dat.txt", "facebook.dat.txt" };
+    vector<Table*> raw_data(0);
+    num_table = 2;
+    for (int i = 0; i < 2; i++) {
+        Table *t = new Table(file_list[i]);
+        raw_data.push_back(t);
+    }
+    //[x1,x2] [x2,x3] [x1,x3]
+    name.push_back(1);
+    name.push_back(0);
+    map<int, int> m1 = hashfunctionQ5(*raw_data[0], *raw_data[1], name[0],
+                                      name[1], num_p);
+    
+    // with x1 for [x1,x2,x3] [x3,x1]
+    map<int, int> m2 = hashfunctionQ5(*raw_data[0], *raw_data[1], 0, 1, num_p);
+    
+    //setting up parameters for joints
+    {
+        vector<int> v1_(1, 1);
+        vector<int> v2_(1, 0);
+        common_x.push_back(v1_);
+        common_x.push_back(v2_);
+    }
+    int dict_x[] = { 0 };
+    
+    // distributed joint
+    Table t_result_buffer = joint_distributedly(id, num_p, raw_data,m1, name,
+                                                common_x, dict_x,true);
+    
+    //distribute intermediate result to all slaves
+    Table t_result = Table(t_result_buffer.get_arity());
+    if (id != ROOT) {
+        receive(t_result, 0);
+    } else {
+        t_result = t_result_buffer;
+        send(t_result, 0, num_p);
+    }
+    
+    cout<<"get_result_size:"<<t_result.get_size()<<" arity:"<<t_result.get_arity()<<endl;
+    MPI_Barrier(MPI_COMM_WORLD);
+    
+    if(id==ROOT)cout<<"distribution intermediate_result finished"<<endl;
+    //third joint[x1,x2,x3] [x3,x1]
+    raw_data[0]=&t_result;
+    //setting up parameters
+    {
+        int x1[] = { 0, 2 };
+        int x2[] = { 1, 0 };
+        vector<int> v1_(x1, x1 + 2);
+        vector<int> v2_(x2, x2 + 2);
+        common_x[0] = v1_;
+        common_x[1] = v2_;
+    }
+    name[0]=2;
+    name[1]=0;
+    
+    int dict_x2[] = { 0,1 };
+    joint_distributedly(id, num_p, raw_data,m2, name,
+                        common_x, dict_x2,true);
+    
+    // Terminate MPI.
+    
+    if (id == ROOT) {
+        end = MPI_Wtime();
+        cout << "Processing time:" << (end - start) << endl;
+    }
+    
+    MPI_Finalize();
+    
+    
+}
+
+
 int main(int argc, char *argv[]) {
 
-	testQ56(argc ,argv);
+	testQ5(argc ,argv);
 	return 0;
 
 }

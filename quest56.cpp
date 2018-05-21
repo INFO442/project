@@ -5,7 +5,7 @@
  *      Author: yiranchen
  */
 
-//distribution can be further improved
+//Generic Version
 #include<map>
 #include <unordered_map>
 #include <stdio.h>
@@ -22,8 +22,8 @@
 
 using namespace std;
 
-void send(Table& t, map<int, int> m, int num_p, int tag, int& flag, int arity);
-void receive(Table& t, int tag, int& flag, int arity);
+void send(Table& t, map<int, int> m, int num_p, int tag, int arity);
+
 void send_toRoot(Table& t, int root, int src);
 void receive_inRoot(Table& t, int num_p);
 int print_vector(vector<int>& v, char * buffer);
@@ -67,14 +67,14 @@ void distribute(Table& t, map<int, int> m, int id, int name) {
 
 	}
 }
-void distribute_by_copy(Table& t, Table& t_, map<int, int> m, int id,
+void distribute_by_copy(Table* t, Table& t_, map<int, int> m, int id,
 		int name) {
 	for (vector<Atom>::iterator itr = t_.begin(); itr != t_.end(); itr++) {
 		int key = itr->get(name);
 		//copy into t for t_ if m(key)==id
 		if (m[key] == id) {
 			Atom a = *itr;
-			t.add_line(a);
+			t->add_line(a);
 		}
 
 	}
@@ -121,11 +121,37 @@ int print_table(Table& T, char * buffer) {
 	}
 	return n;
 }
+void send(Table& t, int tag, int num_p) {
+	cout << "Number_Pro:" << num_p << endl;
+	//construction of hashmap for balanced distribution
+	//send data
+	int arity = t.get_arity();
+	for (vector<Atom>::iterator itr = t.begin(); itr != t.end(); itr++) {
+		MPI_Request reqs;
+		MPI_Status status;
+		Atom atom = *itr;
+		vector<int> a = atom.get_all();
+		for (int i = 1; i < num_p; i++) {
+			MPI_Isend(&a[0], arity, MPI_INT, i, tag, MPI_COMM_WORLD, &reqs);
+			MPI_Wait(&reqs, &status);
+		}
 
-void send(Table& t, map<int, int> m, int num_p, int tag, int& flag, int name,
-		int arity) {
+	}
 
-	flag = 0;
+	//return signal that sending finished
+	for (int i = 0; i < num_p; i++) {
+		MPI_Request reqs;
+		MPI_Status status;
+		vector<int> a(arity, -1);
+
+		MPI_Isend(&a[0], arity, MPI_INT, i, tag, MPI_COMM_WORLD, &reqs);
+		MPI_Wait(&reqs, &status);
+
+	}
+}
+
+void send(Table& t, map<int, int> m, int num_p, int tag, int name, int arity) {
+
 	cout << "Number_Pro:" << num_p << endl;
 	//construction of hashmap for balanced distribution
 
@@ -152,7 +178,7 @@ void send(Table& t, map<int, int> m, int num_p, int tag, int& flag, int name,
 		MPI_Request reqs;
 		MPI_Status status;
 		vector<int> a(arity, -1);
-		flag = 1;
+
 		MPI_Isend(&a[0], arity, MPI_INT, i, tag, MPI_COMM_WORLD, &reqs);
 		MPI_Wait(&reqs, &status);
 
@@ -181,7 +207,8 @@ map<int, int> hashfunction(Table &t, Table &t2, int name1, int name2,
 	return m;
 }
 
-void receive(Table& t, int tag, int& flag, int arity) {
+void receive(Table& t, int tag) {
+	int arity = t.get_arity();
 	vector<int> atom(arity);
 	MPI_Request reqs;
 	MPI_Status status;
@@ -284,68 +311,72 @@ void receive_inRoot_single(Table& t, int src) {
 
 }
 
-int main(int argc, char *argv[]) {
-
-	int id, num_p, flag, tag, num_table;
-
-	MPI_Status status;
-	MPI_Request reqs;
-	// Initialize MPI.
-	MPI_Init(&argc, &argv);
-	// Get the number of processes.
-	MPI_Comm_size(MPI_COMM_WORLD, &num_p);
-	// Get the individual process ID.
-	MPI_Comm_rank(MPI_COMM_WORLD, &id);
-	double start, end;
-	int arity, arity2;
-
-//The master/root processor load data
-	if (id == ROOT) {
-		start = MPI_Wtime();
+Table joint_distributedly(int id, int num_p, vector<Table *> raw_data,
+		map<int, int> m_distribut, vector<int> name,
+		vector<vector<int> > common_x, int* dict_x) {
+	vector<int> all_arity(0);
+	vector<Table*> all_Table(0);
+	int num_table = 2;
+	//examination for input type
+	if (raw_data.size() != 2) {
+		cout << "error_in_joint_distributed!!! " << "ID:" << id
+				<< " raw_data_size_error" << endl;
+		return Table(0);
 	}
-	const char* file = "facebook.dat.txt";
-	const char* file2 = "dblp.dat.txt";
-	Table t_ = Table(file);
-	Table t2_ = Table(file2);
-	arity = t_.get_arity();
-	arity2 = t2_.get_arity();
-	num_table = 2;
-	Table t = Table(arity);
-	Table t2 = Table(arity2);
+	if (common_x.size() != 2) {
+		cout << "error_in_joint_distributed!!! " << "ID:" << id
+				<< " common_x_size_error" << endl;
+		return Table(0);
+	}
+	if (name.size() != 2) {
+		cout << "error_in_joint_distributed!!! " << "ID:" << id
+				<< " name_size_error" << endl;
+		return Table(0);
+	}
 
-	//Root distribute data to every slave //Slave receive data
-	flag = 0;
-	tag = 0;
-	int name1 = 1;
-	int name2 = 0;
-	map<int, int> m = hashfunction(t_, t2_, name1, name2, num_p);
+	//construction for all_arity
+	for (int i = 0; i < num_table; i++) {
+		all_arity.push_back(raw_data[i]->get_arity());
+	}
 
-//	smarter way for distribution
+	//construction for data buffer
+	for (int i = 0; i < num_table; i++) {
+		Table *t = new Table(all_arity[i]);
+		all_Table.push_back(t);
+	}
+	//calculate hashfunction for distribution
+	map<int, int> m = m_distribut;
+	//	smarter way for distributionßß
+	for (int i = 0; i < num_table; i++) {
+		distribute_by_copy(all_Table[i], *raw_data[i], m, id, name[i]);
+	}
 
-	distribute_by_copy(t, t_, m, id, name1);
-	distribute_by_copy(t2, t2_, m, id, name2);
 	MPI_Barrier (MPI_COMM_WORLD);
-	cout << "distributed_T1 size:" << t.get_size() << " T2 size:"
-			<< t2.get_size() << endl;
+	cout << "distributed_T1 size:" << all_Table[0]->get_size() << " T2 size:"
+				<< all_Table[1]->get_size() << endl;
+	if (id == ROOT) {
+		cout << "distribution finished!" << endl;
+	}
 
 
-//	 joint raw data in each processors
 
-	vector<vector<int> > common_x(0);
-	vector<int> v1_(1, 1);
-	vector<int> v2_(1, 0);
-	common_x.push_back(v1_);
-	common_x.push_back(v2_);
-	int dict_x[] = { 0 };
-	Table t_result = Join::join(t, t2, common_x, dict_x);
+	//	 joint raw data in each processors
+
+	if(id==ROOT){
+		cout<<"starting joint"<<endl;
+	}
+	//joits
+
+	Table t_result = Join::join(*all_Table[0], *all_Table[1], common_x, dict_x);
 	cout << "id:" << id << " result_arity: " << t_result.get_arity() << endl;
 	cout << "id:" << id << " result_size: " << t_result.get_size() << endl;
 
 	MPI_Barrier(MPI_COMM_WORLD);
+	if (id == ROOT) {
+		cout << "joint_finished" << endl;
+	}
+	//	  resending results of processors to root
 
-//	  resending results of processors to root
-
-//
 	for (int i = 1; i < num_p; i++) {
 		MPI_Barrier(MPI_COMM_WORLD);
 		if (id != ROOT) {
@@ -356,11 +387,191 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
-// Print off distribution result
+	// Print off result
 	MPI_Barrier(MPI_COMM_WORLD);
 	if (id == ROOT) {
-		print_bug_result(ROOT, t_result,true);
+		print_bug_result(ROOT, t_result, false);
 	}
+
+	for (int i = 0; i < num_table; i++) {
+		delete all_Table[i];
+	}
+
+	return t_result;
+
+}
+
+Table joint_distributedly(int id, int num_p, vector<Table *> raw_data, vector<int> name,
+		vector<vector<int> > common_x, int* dict_x) {
+	vector<int> all_arity(0);
+	vector<Table*> all_Table(0);
+	int num_table = 2;
+	//examination for input type
+	if (raw_data.size() != 2) {
+		cout << "error_in_joint_distributed!!! " << "ID:" << id
+				<< " raw_data_size_error" << endl;
+		return Table(0);
+	}
+	if (common_x.size() != 2) {
+		cout << "error_in_joint_distributed!!! " << "ID:" << id
+				<< " common_x_size_error" << endl;
+		return Table(0);
+	}
+	if (name.size() != 2) {
+		cout << "error_in_joint_distributed!!! " << "ID:" << id
+				<< " name_size_error" << endl;
+		return Table(0);
+	}
+
+	//construction for all_arity
+	for (int i = 0; i < num_table; i++) {
+		all_arity.push_back(raw_data[i]->get_arity());
+	}
+
+	//construction for data buffer
+	for (int i = 0; i < num_table; i++) {
+		Table *t = new Table(all_arity[i]);
+		all_Table.push_back(t);
+	}
+	//calculate hashfunction for distribution
+	map<int, int> m = hashfunction(*raw_data[0], *raw_data[1], name[0], name[1], num_p);
+	//	smarter way for distributionßß
+	for (int i = 0; i < num_table; i++) {
+		distribute_by_copy(all_Table[i], *raw_data[i], m, id, name[i]);
+	}
+
+	MPI_Barrier (MPI_COMM_WORLD);
+	cout << "distributed_T1 size:" << all_Table[0]->get_size() << " T2 size:"
+				<< all_Table[1]->get_size() << endl;
+	if (id == ROOT) {
+		cout << "distribution finished!" << endl;
+	}
+
+
+
+	//	 joint raw data in each processors
+
+	if(id==ROOT){
+		cout<<"starting joint"<<endl;
+	}
+	//joits
+
+	Table t_result = Join::join(*all_Table[0], *all_Table[1], common_x, dict_x);
+	cout << "id:" << id << " result_arity: " << t_result.get_arity() << endl;
+	cout << "id:" << id << " result_size: " << t_result.get_size() << endl;
+
+	MPI_Barrier(MPI_COMM_WORLD);
+	if (id == ROOT) {
+		cout << "joint_finished" << endl;
+	}
+	//	  resending results of processors to root
+
+	for (int i = 1; i < num_p; i++) {
+		MPI_Barrier(MPI_COMM_WORLD);
+		if (id != ROOT) {
+			if (id == i)
+				send_toRoot(t_result, ROOT, id);
+		} else {
+			receive_inRoot_single(t_result, i);
+		}
+	}
+
+	// Print off result
+	MPI_Barrier(MPI_COMM_WORLD);
+	if (id == ROOT) {
+		print_bug_result(ROOT, t_result, false);
+	}
+
+	for (int i = 0; i < num_table; i++) {
+		delete all_Table[i];
+	}
+
+	return t_result;
+
+}
+
+
+int main(int argc, char *argv[]) {
+//setting up for MPI environment
+	int id, num_p, num_table;
+	MPI_Status status;
+	MPI_Request reqs;
+	// Initialize MPI.
+	MPI_Init(&argc, &argv);
+	// Get the number of processes.
+	MPI_Comm_size(MPI_COMM_WORLD, &num_p);
+	// Get the individual process ID.
+	MPI_Comm_rank(MPI_COMM_WORLD, &id);
+
+	//setting up parameters for joints
+
+	vector<Table*> result_Table(0);
+	vector<int> name(0);
+	vector<vector<int> > common_x(0);
+
+//starting run time
+	double start, end;
+	if (id == ROOT) {
+		start = MPI_Wtime();
+	}
+
+//loading raw Data
+	const char* file_list[] = { "facebook.dat.txt", "facebook.dat.txt" };
+	vector<Table*> raw_data(0);
+	num_table = 2;
+	for (int i = 0; i < 2; i++) {
+		Table *t = new Table(file_list[i]);
+		raw_data.push_back(t);
+	}
+//[x1,x2] [x2,x3] [x1,x3]
+	name.push_back(1);
+	name.push_back(0);
+
+//setting up parameters for joints
+	{
+		vector<int> v1_(1, 1);
+		vector<int> v2_(1, 0);
+		common_x.push_back(v1_);
+		common_x.push_back(v2_);
+	}
+	int dict_x[] = { 0 };
+//	map<int, int> m = hashfunction(*raw_data[0], *raw_data[1], name[0], name[1],
+//			num_p);
+
+// distributed joint
+	Table t_result_buffer = joint_distributedly(id, num_p, raw_data, name,
+			common_x, dict_x);
+
+//distribute intermediate result to all slaves
+	Table t_result = Table(t_result_buffer.get_arity());
+	if (id != ROOT) {
+		receive(t_result, 0);
+	} else {
+		t_result = t_result_buffer;
+		send(t_result, 0, num_p);
+	}
+
+	cout<<"get_result_size:"<<t_result.get_size()<<" arity:"<<t_result.get_arity()<<endl;
+	MPI_Barrier(MPI_COMM_WORLD);
+
+	if(id==ROOT)cout<<"distribution intermediate_result finished"<<endl;
+	//third joint[x1,x2,x3] [x3,x1]
+	raw_data[0]=&t_result;
+	//setting up parameters
+	{
+			int x1[] = { 0, 2 };
+			int x2[] = { 1, 0 };
+			vector<int> v1_(x1, x1 + 2);
+			vector<int> v2_(x2, x2 + 2);
+			common_x[0] = v1_;
+			common_x[1] = v2_;
+		}
+	name[0]=2;
+	name[1]=0;
+//	map<int,int>m2 = hashfunction(*raw_data[0], *raw_data[1], name[0], name[1], num_p);
+	int dict_x2[] = { 0,1 };
+	joint_distributedly(id, num_p, raw_data, name,
+				common_x, dict_x2);
 
 // Terminate MPI.
 

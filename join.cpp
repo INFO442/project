@@ -15,10 +15,6 @@
 using namespace std;
 
 Table Join::join(Table& T1, Table& T2, vector<vector<int> > x, int* dict_x) {
-	if(T1.get_size()==0||T2.get_size()==0) {
-		Table table = Table(T1.get_arity() + T2.get_arity() - x[0].size());
-		return table;
-	}
 	int* dict = dict_x;
 	//Assume that here t1 and t2 have been sorted with the same order for common elements in x
 	//we have to add a sort process here
@@ -35,11 +31,12 @@ Table Join::join(Table& T1, Table& T2, vector<vector<int> > x, int* dict_x) {
 	vector<Atom>::const_iterator it1T2 = T2.get_content().begin();
 	vector<Atom>::const_iterator it2T2 = T2.get_content().begin();
 
-	int arity = (*it1T1).get_arity() + (*it1T2).get_arity() - x[0].size();
+	int arity = T1.get_arity() + T2.get_arity() - x[0].size();
 	Table table(arity);
 
-
 	while (it1T1 != T1.get_content().end()) {
+		if (it1T2 == T2.get_content().end())
+			break;
 		it2T1 = it1T1 + 1;
 		it2T2 = it1T2 + 1;
 		if (Atom::compare(*it1T1, *it1T2, x, dict) < 0) {

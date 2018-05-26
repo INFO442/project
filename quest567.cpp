@@ -92,6 +92,64 @@ Table joint_distributedly(int id, int num_p, vector<Table *> raw_data,
 
 
 // function implementation
+void send_all_toRoot(Table& t, int root, int src) {
+    int arity = t.get_arity();
+    int table_size = t.get_size();
+    MPI_Status status;
+    int destination = root;
+    //send data
+    cout << "sending start:" << src << endl;
+    MPI_Send(&table_size,1, MPI_INT, destination, TAG_RESULT + src,
+             MPI_COMM_WORLD);
+    int *all = new int[arity*table_size];
+    int ni =0;
+    for (vector<Atom>::iterator itr = t.begin(); itr != t.end(); itr++) {
+        Atom a = *itr;
+        vector<int> atomv = a.get_all();
+
+        for (int i = 0; i < atomv.size(); i++) {
+            all[ni++] = atomv[i];
+        }
+    }
+    //assert(ni==arity*table_size);
+    MPI_Send(all, arity*table_size, MPI_INT, destination, TAG_RESULT + src,MPI_COMM_WORLD);
+
+    //return signal that sending finished
+
+
+    cout << "sending end:" << src << endl;
+    delete[] all;
+}
+
+
+void receive_all_inRoot(Table& t, int src) {
+
+    MPI_Status status;
+    int arity = t.get_arity();
+    int table_size;
+
+    //        vector<int> atomv(arity, 0);
+    //cout << "reception start:" << src << endl;
+    MPI_Recv(&table_size,1, MPI_INT, src, TAG_RESULT + src, MPI_COMM_WORLD,&status);
+    int* all = new int[arity*table_size];
+
+    MPI_Recv(all,arity*table_size, MPI_INT, src, TAG_RESULT + src, MPI_COMM_WORLD,&status);
+
+    //write into table
+    vector<int> atomv(arity);
+    for(int i=0;i<table_size;i++){
+        for (int j = 0; j < arity; j++) {
+            atomv[j] = all[i*arity+j];
+        }
+        Atom a = Atom(atomv);
+        t.add_line(a);
+    }
+    //cout << "reception end :" << src << endl;
+    delete[] all;
+
+}
+
+
 
 
 
@@ -475,9 +533,9 @@ Table joint_distributedly(int id, int num_p, vector<Table *> raw_data,
 			MPI_Barrier(MPI_COMM_WORLD);
 			if (id != ROOT) {
 				if (id == i)
-					send_toRoot(t_result, ROOT, id);
+					send_all_toRoot(t_result, ROOT, id);
 			} else {
-				receive_inRoot_single(t_result, i);
+				receive_all_inRoot(t_result, i);
 			}
 		}
 	}
@@ -563,9 +621,9 @@ Table joint_distributedly(int id, int num_p, vector<Table *> raw_data,
 			MPI_Barrier(MPI_COMM_WORLD);
 			if (id != ROOT) {
 				if (id == i)
-					send_toRoot(t_result, ROOT, id);
+					send_all_toRoot(t_result, ROOT, id);
 			} else {
-				receive_inRoot_single(t_result, i);
+				receive_all_inRoot(t_result, i);
 			}
 		}
 	}
@@ -607,7 +665,62 @@ map<int, int> hashfunctionQ5(Table &t, Table &t2, int name1, int name2,
 	return m;
 }
 
+void send_mut2(Table& t, int id, map<int, int> m, int name, int num_p) {
 
+	//construction of hashmap for balanced distribution
+	//send data
+	int arity = t.get_arity();
+	cout << "sending start:" << id << endl;
+	vector<Table*> bag(num_p);
+	for(int i=0;i<num_p;i++){
+		bag[i]=new Table(arity);
+	}
+
+	for (vector<Atom>::iterator itr = t.begin(); itr != t.end(); itr++) {
+
+		Atom a = *itr;
+		vector<int> atomv = a.get_all();
+		int dest = m[atomv[name]];
+		if (dest == id)
+			continue;
+		bag[dest]->add_line(a);
+
+	}
+	for(int i=0;i<num_p;i++){
+		if(i==id) continue;
+		send_all_toRoot(*bag[i],  i,  id);
+	}
+	for(int i=0;i<num_p;i++){
+		delete bag[i];
+	}
+
+}
+
+void receive_mut2(Table& t, int src) {
+	MPI_Status status;
+	    int arity = t.get_arity();
+	    int table_size;
+
+	    //        vector<int> atomv(arity, 0);
+	    //cout << "reception start:" << src << endl;
+	    MPI_Recv(&table_size,1, MPI_INT, src, TAG_RESULT + src, MPI_COMM_WORLD,&status);
+	    int* all = new int[arity*table_size];
+
+	    MPI_Recv(all,arity*table_size, MPI_INT, src, TAG_RESULT + src, MPI_COMM_WORLD,&status);
+
+	    //write into table
+	    vector<int> atomv(arity);
+	    for(int i=0;i<table_size;i++){
+	        for (int j = 0; j < arity; j++) {
+	            atomv[j] = all[i*arity+j];
+	        }
+	        Atom a = Atom(atomv);
+	        t.add_line(a);
+	    }
+	    //cout << "reception end :" << src << endl;
+	    delete[] all;
+
+}
 
 void testQ7(int argc, char *argv[]){
 	//setting up for MPI environment
@@ -634,7 +747,7 @@ void testQ7(int argc, char *argv[]){
 		}
 
 	//loading raw Data
-		const char* file_list[] = { "facebook.dat.txt", "facebook.dat.txt" };
+		const char* file_list[] = { "facebook.dat", "facebook.dat"  };
 		vector<Table*> raw_data(0);
 		num_table = 2;
 		for (int i = 0; i < 2; i++) {
@@ -675,10 +788,10 @@ void testQ7(int argc, char *argv[]){
 				cout << "get_itermediate_result:" << i << endl;
 			}
 			if (id == i) {
-				send_mut(t_result_buffer, id, 0, m2, 0, num_p);
+				send_mut2(t_result_buffer, id, m2, 0, num_p);
 			} else {
 
-				receive_mut(t_result_buffer, id, 0, i);
+				receive_mut2(t_result_buffer, i);
 			}
 		}
 
@@ -719,97 +832,6 @@ void testQ7(int argc, char *argv[]){
 		MPI_Finalize();
 }
 
-void testQ56(int argc, char *argv[]){
-	//setting up for MPI environment
-		int id, num_p, num_table;
-		MPI_Status status;
-		MPI_Request reqs;
-		// Initialize MPI.
-		MPI_Init(&argc, &argv);
-		// Get the number of processes.
-		MPI_Comm_size(MPI_COMM_WORLD, &num_p);
-		// Get the individual process ID.
-		MPI_Comm_rank(MPI_COMM_WORLD, &id);
-
-		//setting up parameters for joints
-
-		vector<Table*> result_Table(0);
-		vector<int> name(0);
-		vector<vector<int> > common_x(0);
-
-	//starting run time
-		double start, end;
-		if (id == ROOT) {
-			start = MPI_Wtime();
-		}
-
-	//loading raw Data
-		const char* file_list[] = { "facebook.dat.txt", "facebook.dat.txt" };
-		vector<Table*> raw_data(0);
-		num_table = 2;
-		for (int i = 0; i < 2; i++) {
-			Table *t = new Table(file_list[i]);
-			raw_data.push_back(t);
-		}
-	//[x1,x2] [x2,x3] [x1,x3]
-		name.push_back(1);
-		name.push_back(0);
-
-	//setting up parameters for joints
-		{
-			vector<int> v1_(1, 1);
-			vector<int> v2_(1, 0);
-			common_x.push_back(v1_);
-			common_x.push_back(v2_);
-		}
-		int dict_x[] = { 0 };
-
-	// distributed joint
-		Table t_result_buffer = joint_distributedly(id, num_p, raw_data, name,
-				common_x, dict_x,true);
-
-	//distribute intermediate result to all slaves
-		Table t_result = Table(t_result_buffer.get_arity());
-		if (id != ROOT) {
-			receive(t_result, 0);
-		} else {
-			t_result = t_result_buffer;
-			send(t_result, 0, num_p);
-		}
-
-		cout<<"get_result_size:"<<t_result.get_size()<<" arity:"<<t_result.get_arity()<<endl;
-		MPI_Barrier(MPI_COMM_WORLD);
-
-		if(id==ROOT)cout<<"distribution intermediate_result finished"<<endl;
-		//third joint[x1,x2,x3] [x3,x1]
-		raw_data[0]=&t_result;
-		//setting up parameters
-		{
-				int x1[] = { 0, 2 };
-				int x2[] = { 1, 0 };
-				vector<int> v1_(x1, x1 + 2);
-				vector<int> v2_(x2, x2 + 2);
-				common_x[0] = v1_;
-				common_x[1] = v2_;
-			}
-		name[0]=2;
-		name[1]=0;
-
-		int dict_x2[] = { 0,1 };
-		joint_distributedly(id, num_p, raw_data, name,
-					common_x, dict_x2,true);
-
-	// Terminate MPI.
-
-		if (id == ROOT) {
-			end = MPI_Wtime();
-			cout << "Processing time:" << (end - start) << endl;
-		}
-
-		MPI_Finalize();
-
-
-}
 
 int main(int argc, char *argv[]) {
 

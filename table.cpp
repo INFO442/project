@@ -19,7 +19,7 @@ Table::Table(const char* file) {
 	string line;
 
 	bool isfirstline = true; // using it to make sure that we compute arity only with the fist line
-	int n = 1000;
+	int n = 100000000;
 	while (getline(infile, line) && (n--) > 0) {
 		vector<int> tmp;
 		stringstream ss;

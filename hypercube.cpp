@@ -18,7 +18,7 @@
 
 #define ROOT 0
 #define Buffer_Print_Size 600
-#define TAG_RESULT 100
+#define TAG_RESULT 420
 
 using namespace std;
 
@@ -106,6 +106,35 @@ map<int, int> hashfunction(Table &t, Table &t2, int name1, int name2,
 	return m;
 }
 
+void send_all_toRoot(Table& t, int root, int src) {
+	int arity = t.get_arity();
+	int table_size = t.get_size();
+	MPI_Status status;
+	int destination = root;
+	//send data
+	cout << "sending start:" << src << endl;
+	MPI_Send(&table_size,1, MPI_INT, destination, TAG_RESULT + src,
+			MPI_COMM_WORLD);
+	int *all = new int[arity*table_size];
+	int ni =0;
+	for (vector<Atom>::iterator itr = t.begin(); itr != t.end(); itr++) {
+		Atom a = *itr;
+		vector<int> atomv = a.get_all();
+
+		for (int i = 0; i < atomv.size(); i++) {
+			all[ni++] = atomv[i];
+		}
+	}
+	//assert(ni==arity*table_size);
+        MPI_Send(all, arity*table_size, MPI_INT, destination, TAG_RESULT + src,MPI_COMM_WORLD);
+
+	//return signal that sending finished
+	
+	
+	cout << "sending end:" << src << endl;
+	delete[] all;
+}
+
 void send_toRoot(Table& t, int root, int src) {
 	int arity = t.get_arity();
 	MPI_Status status;
@@ -136,7 +165,7 @@ void send_toRoot(Table& t, int root, int src) {
 	MPI_Send(atom, arity, MPI_INT, destination, TAG_RESULT + src,
 			MPI_COMM_WORLD);
 	cout << "sending end:" << src << endl;
-	delete atom;
+	delete[] atom;
 }
 
 void receive_inRoot(Table& t, int num_p) {
@@ -188,7 +217,35 @@ void receive_inRoot_single(Table& t, int src) {
 	}
 
 	//cout << "reception end :" << src << endl;
-	delete atom;
+	delete[] atom;
+
+}
+void receive_all_inRoot(Table& t, int src) {
+
+	MPI_Status status;
+	int arity = t.get_arity();
+	int table_size;
+	
+	
+
+	//        vector<int> atomv(arity, 0);
+	//cout << "reception start:" << src << endl;
+	MPI_Recv(&table_size,1, MPI_INT, src, TAG_RESULT + src, MPI_COMM_WORLD,&status);
+	int* all = new int[arity*table_size];
+	
+	MPI_Recv(all,arity*table_size, MPI_INT, src, TAG_RESULT + src, MPI_COMM_WORLD,&status);
+	
+	//write into table
+	vector<int> atomv(arity);
+	for(int i=0;i<table_size;i++){
+	    for (int j = 0; j < arity; j++) {
+		atomv[j] = all[i*arity+j];
+	      }
+	    Atom a = Atom(atomv);
+	    t.add_line(a);
+	}
+	//cout << "reception end :" << src << endl;
+	delete[] all;
 
 }
 int main(int argc, char *argv[]) {
@@ -265,7 +322,7 @@ int main(int argc, char *argv[]) {
 	common_T1T2T3.push_back(v3);
 	common_T1T2T3.push_back(v4);
 	int dict_x2[] = { 0, 1 };
-	cout << "here is ok" << endl;
+	//cout << "here is ok" << endl;
 
 	Table T1T2T3 = Join::join(T1T2, localT3, common_T1T2T3, dict_x2);
 
@@ -281,9 +338,9 @@ int main(int argc, char *argv[]) {
 		MPI_Barrier(MPI_COMM_WORLD);
 		if (id != ROOT) {
 			if (id == i)
-				send_toRoot(T1T2T3, ROOT, id);
+				send_all_toRoot(T1T2T3, ROOT, id);
 		} else {
-			receive_inRoot_single(T1T2T3, i);
+			receive_all_inRoot(T1T2T3, i);
 		}
 	}
 

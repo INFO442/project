@@ -655,8 +655,7 @@ int* send_all_to(Table& t, int root, int src, MPI_Request *request) {
 	int destination = root;
 	//send data
 	cout << "sending start:" << src << endl;
-	MPI_Send(&table_size, 1, MPI_INT, destination, TAG_RESULT*2 + src,
-			MPI_COMM_WORLD);
+	MPI_Send(&table_size, 1, MPI_INT, destination, TAG_RESULT*2 + src,MPI_COMM_WORLD);
 	int *all=new int[arity * table_size];
 	int ni = 0;
 	for (vector<Atom>::iterator itr = t.begin(); itr != t.end(); itr++) {
@@ -718,8 +717,6 @@ void receive_mut2(Table& t, int src) {
 	int arity = t.get_arity();
 	int table_size;
 
-	//        vector<int> atomv(arity, 0);
-	//cout << "reception start:" << src << endl;
 	MPI_Recv(&table_size, 1, MPI_INT, src, TAG_RESULT*2 + src, MPI_COMM_WORLD,
 			&status);
 	int* all = new int[arity * table_size];
@@ -784,7 +781,7 @@ void testQ7(int argc, char *argv[]) {
 	}
 
 	//loading raw Data
-	const char* file_list[] = { "twitter.dat", "twitter.dat" };
+	const char* file_list[] = { "facebook.dat", "facebook.dat" };
 	vector<Table*> raw_data(0);
 	num_table = 2;
 	for (int i = 0; i < 2; i++) {

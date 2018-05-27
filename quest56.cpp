@@ -705,7 +705,7 @@ void testQ6(int argc, char *argv[]) {
 	}
 
 	//loading raw Data
-	const char* file_list[] = { "facebook.dat", "facebook.dat" };
+	const char* file_list[] = { "facebook.dat", "facebook.dat"  };
 	vector<Table*> raw_data(0);
 	num_table = 2;
 	for (int i = 0; i < 2; i++) {
@@ -811,7 +811,7 @@ void testQ5(int argc, char *argv[]) {
 	}
 
 	//loading raw Data
-	const char* file_list[] = { "dblp.dat", "dblp.dat" };
+	const char* file_list[] = { "facebook.dat", "facebook.dat" };
 	vector<Table*> raw_data(0);
 	num_table = 2;
 	for (int i = 0; i < 2; i++) {
@@ -888,7 +888,7 @@ void testQ5(int argc, char *argv[]) {
 
 int main(int argc, char *argv[]) {
 
-	testQ5(argc, argv);
+	testQ6(argc, argv);
 	return 0;
 
 }

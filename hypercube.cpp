@@ -22,14 +22,15 @@
 
 using namespace std;
 
-void send_toRoot(Table& t, int root, int src);
-void receive_inRoot(Table& t, int num_p);
+
 
 int print_vector(vector<int>& v, char * buffer);
 int print_table(Table& T, char * buffer);
 
+//produce hashfunction according to the values in the given relations
 map<int, int> hashfunction(Table &t, Table &t2, int name1, int name2,
 		int num_p);
+
 int compute_proc(int* hashcode, int* total, int size); //this function is going to compute which process to put the atom with this hashcode
 
 int compute_proc(int* hashcode, int m_p, int size) {
@@ -39,7 +40,7 @@ int compute_proc(int* hashcode, int m_p, int size) {
 	}
 	return n;
 }
-
+//Distribute tuples to different process according to the hash function
 void DistributeMultiDim(Table& localT, Table& T, map<int, int> hash, int m_p,
 		int id, int*com_variable) {
 	for (vector<Atom>::iterator it = T.begin(); it != T.end(); it++) {
@@ -112,7 +113,7 @@ void send_all_toRoot(Table& t, int root, int src) {
 	MPI_Status status;
 	int destination = root;
 	//send data
-	cout << "sending start:" << src << endl;
+// 	cout << "sending start:" << src << endl;
 	MPI_Send(&table_size,1, MPI_INT, destination, TAG_RESULT + src,
 			MPI_COMM_WORLD);
 	int *all = new int[arity*table_size];
@@ -131,95 +132,10 @@ void send_all_toRoot(Table& t, int root, int src) {
 	//return signal that sending finished
 	
 	
-	cout << "sending end:" << src << endl;
+// 	cout << "sending end:" << src << endl;
 	delete[] all;
 }
 
-void send_toRoot(Table& t, int root, int src) {
-	int arity = t.get_arity();
-	MPI_Status status;
-	int destination = root;
-	//send data
-	cout << "sending start:" << src << endl;
-	int *atom = new int[arity];
-	for (vector<Atom>::iterator itr = t.begin(); itr != t.end(); itr++) {
-
-		Atom a = *itr;
-		vector<int> atomv = a.get_all();
-
-		for (int i = 0; i < atomv.size(); i++) {
-			atom[i] = atomv[i];
-		}
-
-		MPI_Send(atom, arity, MPI_INT, destination, TAG_RESULT + src,
-				MPI_COMM_WORLD);
-
-	}
-
-	//return signal that sending finished
-	vector<int> atomv(arity, -1);
-	for (int i = 0; i < arity; i++) {
-		atom[i] = -1;
-
-	}
-	MPI_Send(atom, arity, MPI_INT, destination, TAG_RESULT + src,
-			MPI_COMM_WORLD);
-	cout << "sending end:" << src << endl;
-	delete[] atom;
-}
-
-void receive_inRoot(Table& t, int num_p) {
-	MPI_Request reqs;
-	MPI_Status status;
-	int arity = t.get_arity();
-	for (int i = 1; i < num_p; i++) {
-		vector<int> atom(arity, 0);
-		while (atom[0] >= 0) {
-			MPI_Irecv(&atom[0], arity, MPI_INT, i, TAG_RESULT, MPI_COMM_WORLD,
-					&reqs);
-			MPI_Wait(&reqs, &status);
-			if (atom[0] >= 0) {
-				Atom a = Atom(atom);
-				t.add_line(a);
-			}
-		}
-		cout << "received:" << i << endl;
-	}
-}
-void receive_inRoot_single(Table& t, int src) {
-
-	MPI_Status status;
-	int arity = t.get_arity();
-	int* atom = new int[arity];
-	vector<int> atomv(arity);
-
-	for (int i = 0; i < arity; i++) {
-		atom[i] = 0;
-	}
-	//        vector<int> atomv(arity, 0);
-	//cout << "reception start:" << src << endl;
-
-	while (atom[0] >= 0) {
-
-		MPI_Recv(atom, arity, MPI_INT, src, TAG_RESULT + src, MPI_COMM_WORLD,
-				&status);
-
-		if (atom[0] >= 0) {
-
-			for (int i = 0; i < arity; i++) {
-				atomv[i] = atom[i];
-			}
-
-			Atom a = Atom(atomv);
-			t.add_line(a);
-		}
-
-	}
-
-	//cout << "reception end :" << src << endl;
-	delete[] atom;
-
-}
 void receive_all_inRoot(Table& t, int src) {
 
 	MPI_Status status;
@@ -262,19 +178,22 @@ int main(int argc, char *argv[]) {
 	MPI_Comm_rank(MPI_COMM_WORLD, &id);
 	double start, end;
 
-	m_p = (int) pow(num_p, 1 / 3.0); //num_p= m_p*m_p*m_p
+	m_p = pow((double)num_p+0.0001, 1.0/3.0); //num_p= m_p*m_p*m_p
 	int arity; //Arity of the table
 	if (id == ROOT) {
-		cout << "m_p:" << m_p << endl;
+		cout <<"num_p: "<<num_p<< " m_p:" << m_p << endl;
 		start = MPI_Wtime();
 	}
-	const char* file = "facebook.dat";
-	const char* file2 = "facebook.dat";
-	const char* file3 = "facebook.dat";
+	//"twitter.dat" "facebook.dat"
+	char s[] = "facebook.dat";
+	const char* file = s;
+	const char* file2 =s;
+	const char* file3 = s;
 	Table T1 = Table(file); //T(X1,X2)
 	Table T2 = Table(file2); //T(X2,X3)
 	Table T3 = Table(file3); //T(X1,X3)
-
+	if(id ==ROOT){
+	cout<<"database: "<<s<<endl;}
 	arity = T1.get_arity();
 
 	int common_x_T1[3] = { 0, 1, -1 }; //T1(X1,X3)
@@ -298,9 +217,9 @@ int main(int argc, char *argv[]) {
 	DistributeMultiDim(localT2, T2, hash, m_p, id, common_x_T2);
 	DistributeMultiDim(localT3, T3, hash, m_p, id, common_x_T3);
 
-	cout << "Id " << id << "distributedT1 size:" << localT1.get_size()
-			<< " T2 size:" << localT2.get_size() << " T3 size:"
-			<< localT3.get_size() << endl;
+// 	cout << "Id " << id << "distributedT1 size:" << localT1.get_size()
+// 			<< " T2 size:" << localT2.get_size() << " T3 size:"
+// 			<< localT3.get_size() << endl;
 
 //	 joint raw data in each processors
 
@@ -326,8 +245,8 @@ int main(int argc, char *argv[]) {
 
 	Table T1T2T3 = Join::join(T1T2, localT3, common_T1T2T3, dict_x2);
 
-	cout << "id:" << id << " result_arity: " << T1T2T3.get_arity() << endl;
-	cout << "id:" << id << " result_size: " << T1T2T3.get_size() << endl;
+// 	cout << "id:" << id << " result_arity: " << T1T2T3.get_arity() << endl;
+// 	cout << "id:" << id << " result_size: " << T1T2T3.get_size() << endl;
 
 	MPI_Barrier (MPI_COMM_WORLD);
 
@@ -349,10 +268,9 @@ int main(int argc, char *argv[]) {
 	if (id == ROOT) {
 		end = MPI_Wtime();
 		cout << "Processing time:" << (end - start) << endl;
-	}
-	if (id == ROOT) {
 		cout << "id:" << id << " result_arity: " << T1T2T3.get_arity() << endl;
 		cout << "id:" << id << " result_size: " << T1T2T3.get_size() << endl;
+		cout << endl;
 
 	}
 
